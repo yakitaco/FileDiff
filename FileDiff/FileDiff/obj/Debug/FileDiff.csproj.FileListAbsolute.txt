@@ -1,0 +1,10 @@
+E:\FileDiff\FileDiff\FileDiff\bin\Debug\FileDiff.exe.config
+E:\FileDiff\FileDiff\FileDiff\bin\Debug\FileDiff.exe
+E:\FileDiff\FileDiff\FileDiff\bin\Debug\FileDiff.pdb
+E:\FileDiff\FileDiff\FileDiff\obj\Debug\FileDiff.csprojAssemblyReference.cache
+E:\FileDiff\FileDiff\FileDiff\obj\Debug\FileDiff.Form1.resources
+E:\FileDiff\FileDiff\FileDiff\obj\Debug\FileDiff.Properties.Resources.resources
+E:\FileDiff\FileDiff\FileDiff\obj\Debug\FileDiff.csproj.GenerateResource.cache
+E:\FileDiff\FileDiff\FileDiff\obj\Debug\FileDiff.csproj.CoreCompileInputs.cache
+E:\FileDiff\FileDiff\FileDiff\obj\Debug\FileDiff.exe
+E:\FileDiff\FileDiff\FileDiff\obj\Debug\FileDiff.pdb

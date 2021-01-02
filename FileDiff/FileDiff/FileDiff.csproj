@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{2DDA1DBB-B3F7-4FAD-BD40-457DFE2A63BD}</ProjectGuid>
+    <ProjectGuid>{58CB22A6-F191-4D5E-86FA-732A5645B881}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>FileDiff</RootNamespace>
     <AssemblyName>FileDiff</AssemblyName>
@@ -54,6 +54,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Form1.resx">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
