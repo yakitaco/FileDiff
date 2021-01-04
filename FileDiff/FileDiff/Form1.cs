@@ -61,5 +61,9 @@ namespace FileDiff {
                 textBox2.Text = fbd.SelectedPath;
             }
         }
+
+        private void button3_Click(object sender, EventArgs e) {
+            Program.diffFiles(textBox1.Text, textBox2.Text, checkBox1.Checked, checkBox2.Checked,checkBox3.Checked);
+        }
     }
 }
