@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace FileDiff {
@@ -23,34 +20,48 @@ namespace FileDiff {
 
         public static void diffFiles(string oDir, string dDir, bool s1, bool s2, bool s3) {
             string[] names = Directory.GetFiles(@oDir, "*", SearchOption.AllDirectories);
+            int cnt = 0;
             foreach (string n in names) {
+                cnt++;
+                Form1._setProgress(cnt, names.Length);
                 var f = new FileInfo(n);
                 f.Refresh();
-                Debug.WriteLine( n + " : " + f.Length);
+                Debug.WriteLine(n + " : " + f.Length);
                 string d = @dDir + n.Substring(oDir.Length);
+                var df = new FileInfo(d);
                 if (System.IO.File.Exists(d)) { // ファイル存在
 
                 } else {
-                    Debug.WriteLine( d + " : Not Exist");
+                    Debug.WriteLine(d + " : Not Exist");
+                    Form1._setText(d + " : Not Exist");
                     continue;
                 }
-                if ((s1) && (f.Length == d.Length)) { // ファイルサイズ
+                if (s1) { // ファイルサイズ
+                    if (f.Length == df.Length) {
 
-                } else {
-                    Debug.WriteLine(d + " : Size Diff");
-                    continue;
+                    } else {
+                        Debug.WriteLine(d + " : Size Diff");
+                        Form1._setText(d + " : Size Diff");
+                        continue;
+                    }
                 }
-                if ((s2) && (f.Length == d.Length)) { // タイムスタンプ
+                if (s2) { // タイムスタンプ
+                    if (f.LastWriteTime == df.LastWriteTime) {
 
-                } else {
-                    Debug.WriteLine(d + " : Time Diff");
-                    continue;
+                    } else {
+                        Debug.WriteLine(d + " : Time Diff");
+                        Form1._setText(d + " : Time Diff");
+                        continue;
+                    }
                 }
-                if ((s3) && (ComputeFileHash(f.FullName) == ComputeFileHash(d))) { // ハッシュ
+                if (s3) { // ハッシュ
+                    if (ComputeFileHash(n) == ComputeFileHash(d)) {
 
-                } else {
-                    Debug.WriteLine(d + " : Hash Diff");
-                    continue;
+                    } else {
+                        Debug.WriteLine(d + " : Hash Diff");
+                        Form1._setText(d + " : Hash Diff");
+                        continue;
+                    }
                 }
             }
 
