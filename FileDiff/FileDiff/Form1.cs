@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -83,7 +80,10 @@ namespace FileDiff {
                 backgroundWorker1.WorkerSupportsCancellation = true;
 
                 backgroundWorker1.RunWorkerAsync();
-
+                label1.Text = "-/-";
+                progressBar1.Minimum = 0;
+                progressBar1.Maximum = 100;
+                progressBar1.Value = 0;
                 doflag = true;
             } else {
                 //Cancel
@@ -93,7 +93,7 @@ namespace FileDiff {
             }
         }
 
-        public static void _setText(string text){
+        public static void _setText(string text) {
             instance.setText(text);
         }
 
@@ -121,76 +121,103 @@ namespace FileDiff {
             bool s2 = checkBox2.Checked;
             bool s3 = checkBox3.Checked;
 
-            string[] names = Directory.GetFiles(@oDir, "*", SearchOption.AllDirectories);
+            //string[] names = Directory.GetFiles(@oDir, "*", SearchOption.AllDirectories);
+            List<string> names = GetAllFiles(@oDir);
+
             int cnt = 0;
             int diff = 0;
 
-            bgWorker.ReportProgress(cnt, new object[] { names.Length, "" });
+            bgWorker.ReportProgress(cnt, new object[] { names.Count, "" });
 
-            foreach (string n in names) {
-                cnt++;
+            // スレッド数取得
+            int workMin;
+            int ioMin;
+            Object lockObj = new Object();
+            ThreadPool.GetMinThreads(out workMin, out ioMin);
 
-                //キャンセルされたか調べる
-                if (bgWorker.CancellationPending) {
-                    //キャンセルされたとき
-                    e.Cancel = true;
-                    return;
-                }
+            // 複数スレッドで実施
+            Parallel.For(0, workMin, id => {
+                while (true) {
+                    int cnt_local;
+                    lock (lockObj) {
+                        if (names.Count <= cnt) break;
+                        cnt_local = cnt;
+                        cnt++;
+                    }
 
-                var f = new FileInfo(n);
-                f.Refresh();
-                Debug.WriteLine(n + " : " + f.Length);
-                string d = @dDir + n.Substring(oDir.Length);
-                var df = new FileInfo(d);
-                if (System.IO.File.Exists(d)) { // ファイル存在
 
-                } else {
-                    Debug.WriteLine(d + " : Not Exist");
-                    bgWorker.ReportProgress(cnt, new object[] { names.Length, d + " : Not Exist" });
-                    //Form1._setText(d + " : Not Exist");
-                    diff++;
-                    continue;
-                }
-                if (s1) { // ファイルサイズ
-                    if (f.Length == df.Length) {
+                    //キャンセルされたか調べる
+                    if (bgWorker.CancellationPending) {
+                        //キャンセルされたとき
+                        e.Cancel = true;
+                        return;
+                    }
+
+                    FileInfo f;
+                    try {
+                        //ファイルを開く
+                        f = new FileInfo(names[cnt_local]);
+                    } catch (System.UnauthorizedAccessException) {
+                        bgWorker.ReportProgress(cnt, new object[] { names.Count, names[cnt_local] + " : Access Error" });
+                        continue;
+                    }
+
+                    f.Refresh();
+                    Debug.WriteLine(names[cnt_local] + " : " + f.Length);
+                    string d = @dDir + names[cnt_local].Substring(oDir.Length);
+
+                    var df = new FileInfo(d);
+
+                    if (System.IO.File.Exists(d)) { // ファイル存在
 
                     } else {
-                        Debug.WriteLine(d + " : Size Diff");
-                        bgWorker.ReportProgress(cnt, new object[] { names.Length, d + " : Size Diff" });
-                        //Form1._setText(d + " : Size Diff");
+                        Debug.WriteLine(d + " : Not Exist");
+                        bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Not Exist" });
+                        //Form1._setText(d + " : Not Exist");
                         diff++;
                         continue;
                     }
-                }
-                if (s2) { // タイムスタンプ
-                    if (f.LastWriteTime == df.LastWriteTime) {
+                    if (s1) { // ファイルサイズ
+                        if (f.Length == df.Length) {
 
-                    } else {
-                        Debug.WriteLine(d + " : Time Diff");
-                        bgWorker.ReportProgress(cnt, new object[] { names.Length, d + " : Time Diff" });
-                        //Form1._setText(d + " : Time Diff");
-                        diff++;
-                        continue;
+                        } else {
+                            Debug.WriteLine(d + " : Size Diff");
+                            bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Size Diff" });
+                            //Form1._setText(d + " : Size Diff");
+                            diff++;
+                            continue;
+                        }
                     }
-                }
-                if (s3) { // ハッシュ
-                    if (ComputeFileHash(n) == ComputeFileHash(d)) {
+                    if (s2) { // タイムスタンプ
+                        if (f.LastWriteTime == df.LastWriteTime) {
 
-                    } else {
-                        Debug.WriteLine(d + " : Hash Diff");
-                        bgWorker.ReportProgress(cnt, new object[] { names.Length, d + " : Hash Diff" });
-                        //Form1._setText(d + " : Hash Diff");
-                        diff++;
-                        continue;
+                        } else {
+                            Debug.WriteLine(d + " : Time Diff");
+                            bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Time Diff" });
+                            //Form1._setText(d + " : Time Diff");
+                            diff++;
+                            continue;
+                        }
                     }
+                    if (s3) { // ハッシュ
+                        if (ComputeFileHash(names[cnt_local]) == ComputeFileHash(d)) {
+
+                        } else {
+                            Debug.WriteLine(d + " : Hash Diff");
+                            bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Hash Diff" });
+                            //Form1._setText(d + " : Hash Diff");
+                            diff++;
+                            continue;
+                        }
+                    }
+                    bgWorker.ReportProgress(cnt, new object[] { names.Count, "" });//差分なし
+
                 }
-                bgWorker.ReportProgress(cnt, new object[] { names.Length, "" });//差分なし
-            }
-
-
+            });
 
             // 反対側(存在のみチェック)
-            string[] names2 = Directory.GetFiles(@dDir, "*", SearchOption.AllDirectories);
+            //string[] names2 = Directory.GetFiles(@dDir, "*", SearchOption.AllDirectories);
+            List<string> names2 = GetAllFiles(dDir);
             foreach (string n in names2) {
 
                 //キャンセルされたか調べる
@@ -200,7 +227,17 @@ namespace FileDiff {
                     return;
                 }
 
-                var f = new FileInfo(n);
+                //var f = new FileInfo(n);
+                FileInfo f;
+                try {
+                    //ファイルを開く
+                    f = new FileInfo(n);
+                } catch (System.UnauthorizedAccessException) {
+                    bgWorker.ReportProgress(cnt, new object[] { names.Count, n + " : Access Error" });
+                    continue;
+                }
+
+
                 f.Refresh();
                 Debug.WriteLine(n + " : " + f.Length);
                 string o = @oDir + n.Substring(dDir.Length);
@@ -208,7 +245,7 @@ namespace FileDiff {
 
                 } else {
                     Debug.WriteLine(o + " : Not Exist");
-                    bgWorker.ReportProgress(names.Length, new object[] { names.Length, o + " : Not Exist" });
+                    bgWorker.ReportProgress(names.Count, new object[] { names.Count, o + " : Not Exist" });
                     diff++;
                 }
             }
@@ -260,6 +297,32 @@ namespace FileDiff {
             var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             var bs = hashProvider.ComputeHash(fs);
             return BitConverter.ToString(bs).ToLower().Replace("-", "");
+        }
+
+        public static List<String> GetAllFiles(String DirPath) {
+            List<String> lstStr = new List<String>();
+            String[] strBuff;
+
+            try {
+                // ファイル取得
+                strBuff = Directory.GetFiles(DirPath);
+                foreach (String s in strBuff) {
+                    lstStr.Add(s);
+                }
+
+                // ディレクトリの取得
+                strBuff = Directory.GetDirectories(DirPath);
+                foreach (String s in strBuff) {
+                    List<String> lstBuff = GetAllFiles(s);
+                    lstBuff.ForEach(delegate (String str) {
+                        lstStr.Add(str);
+                    });
+                }
+            } catch (System.UnauthorizedAccessException) {
+                // アクセスできなかったので無視
+            }
+
+            return lstStr;
         }
 
     }

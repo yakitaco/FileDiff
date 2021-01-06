@@ -156,9 +156,9 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(593, 461);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(125, 18);
+            this.label1.Size = new System.Drawing.Size(35, 18);
             this.label1.TabIndex = 10;
-            this.label1.Text = "100000/100000";
+            this.label1.Text = "-/-";
             // 
             // backgroundWorker1
             // 
