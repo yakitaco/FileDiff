@@ -11,10 +11,8 @@ using System.Windows.Forms;
 namespace FileDiff {
     public partial class Form1 : Form {
         static readonly HashAlgorithm hashProvider = new MD5CryptoServiceProvider();
-        public static Form1 instance;
         bool doflag = false;
         public Form1() {
-            instance = this;
             InitializeComponent();
         }
 
@@ -72,7 +70,6 @@ namespace FileDiff {
                 if (backgroundWorker1.IsBusy) return;
                 button3.Text = "Stop";
                 textBox3.Clear();
-                //Program.diffFiles(textBox1.Text, textBox2.Text, checkBox1.Checked, checkBox2.Checked, checkBox3.Checked);
 
                 //BackgroundWorkerのProgressChangedイベントが発生するようにする
                 backgroundWorker1.WorkerReportsProgress = true;
@@ -93,23 +90,8 @@ namespace FileDiff {
             }
         }
 
-        public static void _setText(string text) {
-            instance.setText(text);
-        }
-
         void setText(string text) {
             textBox3.AppendText(text + Environment.NewLine);
-        }
-
-        public static void _setProgress(int val, int max) {
-            instance.setProgress(val, max);
-        }
-
-        void setProgress(int val, int max) {
-            progressBar1.Minimum = 0;
-            progressBar1.Maximum = max;
-            progressBar1.Value = val;
-            label1.Text = val + "/" + max;
         }
 
         private void BackgroundWorker1_DoWork(object sender, DoWorkEventArgs e) {
@@ -121,7 +103,6 @@ namespace FileDiff {
             bool s2 = checkBox2.Checked;
             bool s3 = checkBox3.Checked;
 
-            //string[] names = Directory.GetFiles(@oDir, "*", SearchOption.AllDirectories);
             List<string> names = GetAllFiles(@oDir);
 
             int cnt = 0;
@@ -173,7 +154,6 @@ namespace FileDiff {
                     } else {
                         Debug.WriteLine(d + " : Not Exist");
                         bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Not Exist" });
-                        //Form1._setText(d + " : Not Exist");
                         diff++;
                         continue;
                     }
@@ -183,7 +163,6 @@ namespace FileDiff {
                         } else {
                             Debug.WriteLine(d + " : Size Diff");
                             bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Size Diff" });
-                            //Form1._setText(d + " : Size Diff");
                             diff++;
                             continue;
                         }
@@ -194,7 +173,6 @@ namespace FileDiff {
                         } else {
                             Debug.WriteLine(d + " : Time Diff");
                             bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Time Diff" });
-                            //Form1._setText(d + " : Time Diff");
                             diff++;
                             continue;
                         }
@@ -205,7 +183,6 @@ namespace FileDiff {
                         } else {
                             Debug.WriteLine(d + " : Hash Diff");
                             bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Hash Diff" });
-                            //Form1._setText(d + " : Hash Diff");
                             diff++;
                             continue;
                         }
@@ -216,7 +193,6 @@ namespace FileDiff {
             });
 
             // 反対側(存在のみチェック)
-            //string[] names2 = Directory.GetFiles(@dDir, "*", SearchOption.AllDirectories);
             List<string> names2 = GetAllFiles(dDir);
             foreach (string n in names2) {
 
