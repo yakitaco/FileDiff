@@ -10,70 +10,47 @@ using System.Windows.Forms;
 
 namespace FileDiff {
     public partial class Form1 : Form {
-        static readonly HashAlgorithm hashProvider = new MD5CryptoServiceProvider();
         bool doflag = false;
+
         public Form1() {
             InitializeComponent();
         }
 
-        private void button1_Click(object sender, EventArgs e) {
-            //FolderBrowserDialogクラスのインスタンスを作成
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
+        // フォルダ選択処理を共通化
+        private void SelectFolder(TextBox textBox) {
+            using (FolderBrowserDialog fbd = new FolderBrowserDialog()) {
+                fbd.Description = "フォルダを指定してください。";
+                fbd.RootFolder = Environment.SpecialFolder.Desktop;
+                fbd.ShowNewFolderButton = true;
 
-            //上部に表示する説明テキストを指定する
-            fbd.Description = "フォルダを指定してください。";
-            //ルートフォルダを指定する
-            //デフォルトでDesktop
-            fbd.RootFolder = Environment.SpecialFolder.Desktop;
-            //最初に選択するフォルダを指定する
-            //RootFolder以下にあるフォルダである必要がある
-            fbd.SelectedPath = @"C:\Windows";
-            //ユーザーが新しいフォルダを作成できるようにする
-            //デフォルトでTrue
-            fbd.ShowNewFolderButton = true;
-
-            //ダイアログを表示する
-            if (fbd.ShowDialog(this) == DialogResult.OK) {
-                //選択されたフォルダを表示する
-                Console.WriteLine(fbd.SelectedPath);
-                textBox1.Text = fbd.SelectedPath;
+                if (fbd.ShowDialog(this) == DialogResult.OK) {
+                    textBox.Text = fbd.SelectedPath;
+                }
             }
+        }
+
+        private void button1_Click(object sender, EventArgs e) {
+            SelectFolder(textBox1);
         }
 
         private void button2_Click(object sender, EventArgs e) {
-            //FolderBrowserDialogクラスのインスタンスを作成
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
-
-            //上部に表示する説明テキストを指定する
-            fbd.Description = "フォルダを指定してください。";
-            //ルートフォルダを指定する
-            //デフォルトでDesktop
-            fbd.RootFolder = Environment.SpecialFolder.Desktop;
-            //最初に選択するフォルダを指定する
-            //RootFolder以下にあるフォルダである必要がある
-            fbd.SelectedPath = @"C:\Windows";
-            //ユーザーが新しいフォルダを作成できるようにする
-            //デフォルトでTrue
-            fbd.ShowNewFolderButton = true;
-
-            //ダイアログを表示する
-            if (fbd.ShowDialog(this) == DialogResult.OK) {
-                //選択されたフォルダを表示する
-                Console.WriteLine(fbd.SelectedPath);
-                textBox2.Text = fbd.SelectedPath;
-            }
+            SelectFolder(textBox2);
         }
 
         private void button3_Click(object sender, EventArgs e) {
-            if (doflag == false) {
-                //処理が行われているときは、何もしない
+            if (!doflag) {
                 if (backgroundWorker1.IsBusy) return;
+                
+                // 入力チェック
+                if (string.IsNullOrWhiteSpace(textBox1.Text) || string.IsNullOrWhiteSpace(textBox2.Text)) {
+                    MessageBox.Show("比較するフォルダを指定してください。");
+                    return;
+                }
+
                 button3.Text = "Stop";
                 textBox3.Clear();
 
-                //BackgroundWorkerのProgressChangedイベントが発生するようにする
                 backgroundWorker1.WorkerReportsProgress = true;
-                //キャンセルできるようにする
                 backgroundWorker1.WorkerSupportsCancellation = true;
 
                 backgroundWorker1.RunWorkerAsync();
@@ -83,15 +60,19 @@ namespace FileDiff {
                 progressBar1.Value = 0;
                 doflag = true;
             } else {
-                //Cancel
                 backgroundWorker1.CancelAsync();
                 button3.Text = "Start";
                 doflag = false;
             }
         }
 
-        void setText(string text) {
-            textBox3.AppendText(text + Environment.NewLine);
+        // 別スレッドから安全にテキストボックスに追記するためのメソッド
+        private void AppendText(string text) {
+            if (this.InvokeRequired) {
+                this.Invoke(new Action<string>(AppendText), text);
+            } else {
+                textBox3.AppendText(text + Environment.NewLine);
+            }
         }
 
         private void BackgroundWorker1_DoWork(object sender, DoWorkEventArgs e) {
@@ -99,209 +80,163 @@ namespace FileDiff {
 
             string oDir = textBox1.Text;
             string dDir = textBox2.Text;
+            
+            // ディレクトリの末尾にセパレータ(\)がない場合の対策
+            if (!oDir.EndsWith(Path.DirectorySeparatorChar.ToString())) oDir += Path.DirectorySeparatorChar;
+            if (!dDir.EndsWith(Path.DirectorySeparatorChar.ToString())) dDir += Path.DirectorySeparatorChar;
+
             bool s1 = checkBox1.Checked;
             bool s2 = checkBox2.Checked;
             bool s3 = checkBox3.Checked;
 
-            List<string> names = GetAllFiles(@oDir);
+            List<string> names = GetAllFiles(oDir);
 
             int cnt = 0;
             int diff = 0;
+            int totalFiles = names.Count;
 
-            bgWorker.ReportProgress(cnt, new object[] { names.Count, "" });
+            bgWorker.ReportProgress(0, new object[] { totalFiles, "" });
 
-            // スレッド数取得
-            int workMin;
-            int ioMin;
-            Object lockObj = new Object();
-            ThreadPool.GetMinThreads(out workMin, out ioMin);
-
-            // 複数スレッドで実施
-            Parallel.For(0, workMin, id => {
-                while (true) {
-                    int cnt_local;
-                    lock (lockObj) {
-                        if (names.Count <= cnt) break;
-                        cnt_local = cnt;
-                        cnt++;
-                    }
-
-
-                    //キャンセルされたか調べる
+            // Parallel.ForEach を使用して並列処理を簡素化・安全化
+            ParallelOptions options = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+            
+            try {
+                Parallel.ForEach(names, options, (name, loopState) => {
                     if (bgWorker.CancellationPending) {
-                        //キャンセルされたとき
-                        e.Cancel = true;
+                        loopState.Stop();
                         return;
                     }
 
-                    FileInfo f;
-                    try {
-                        //ファイルを開く
-                        f = new FileInfo(names[cnt_local]);
-                    } catch (System.UnauthorizedAccessException) {
-                        bgWorker.ReportProgress(cnt, new object[] { names.Count, names[cnt_local] + " : Access Error" });
-                        continue;
+                    // スレッドセーフにカウントアップ
+                    int currentCnt = Interlocked.Increment(ref cnt);
+                    
+                    // UI更新頻度を抑える（10ファイルごと、または最後）
+                    if (currentCnt % 10 == 0 || currentCnt == totalFiles) {
+                        bgWorker.ReportProgress(currentCnt, new object[] { totalFiles, "" });
                     }
 
-                    f.Refresh();
-                    Debug.WriteLine(names[cnt_local] + " : " + f.Length);
-                    string d = @dDir + names[cnt_local].Substring(oDir.Length);
+                    FileInfo f = new FileInfo(name);
+                    
+                    // 相対パスを取得して比較先パスを安全に生成
+                    string relativePath = name.Substring(oDir.Length);
+                    string targetPath = Path.Combine(dDir, relativePath);
+                    FileInfo df = new FileInfo(targetPath);
 
-                    var df = new FileInfo(d);
-
-                    if (System.IO.File.Exists(d)) { // ファイル存在
-
-                    } else {
-                        Debug.WriteLine(d + " : Not Exist");
-                        bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Not Exist" });
-                        diff++;
-                        continue;
+                    if (!df.Exists) {
+                        Interlocked.Increment(ref diff); // スレッドセーフに差分追加
+                        string msg = targetPath + " : Not Exist";
+                        AppendText(msg);
+                        return; 
                     }
-                    if (s1) { // ファイルサイズ
-                        if (f.Length == df.Length) {
 
-                        } else {
-                            Debug.WriteLine(d + " : Size Diff");
-                            bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Size Diff" });
-                            diff++;
-                            continue;
+                    if (s1 && f.Length != df.Length) {
+                        Interlocked.Increment(ref diff);
+                        string msg = targetPath + " : Size Diff";
+                        AppendText(msg);
+                        return;
+                    }
+
+                    if (s2 && f.LastWriteTime != df.LastWriteTime) {
+                        Interlocked.Increment(ref diff);
+                        string msg = targetPath + " : Time Diff";
+                        AppendText(msg);
+                        return;
+                    }
+
+                    if (s3) {
+                        try {
+                            if (ComputeFileHash(name) != ComputeFileHash(targetPath)) {
+                                Interlocked.Increment(ref diff);
+                                string msg = targetPath + " : Hash Diff";
+                                AppendText(msg);
+                                return;
+                            }
+                        } catch (Exception ex) {
+                            AppendText(name + " : Hash Compute Error (" + ex.Message + ")");
                         }
                     }
-                    if (s2) { // タイムスタンプ
-                        if (f.LastWriteTime == df.LastWriteTime) {
+                });
+            } catch (OperationCanceledException) {
+                e.Cancel = true;
+                return;
+            }
 
-                        } else {
-                            Debug.WriteLine(d + " : Time Diff");
-                            bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Time Diff" });
-                            diff++;
-                            continue;
-                        }
-                    }
-                    if (s3) { // ハッシュ
-                        if (ComputeFileHash(names[cnt_local]) == ComputeFileHash(d)) {
-
-                        } else {
-                            Debug.WriteLine(d + " : Hash Diff");
-                            bgWorker.ReportProgress(cnt, new object[] { names.Count, d + " : Hash Diff" });
-                            diff++;
-                            continue;
-                        }
-                    }
-                    bgWorker.ReportProgress(cnt, new object[] { names.Count, "" });//差分なし
-
-                }
-            });
+            if (bgWorker.CancellationPending) {
+                e.Cancel = true;
+                return;
+            }
 
             // 反対側(存在のみチェック)
             List<string> names2 = GetAllFiles(dDir);
             foreach (string n in names2) {
-
-                //キャンセルされたか調べる
                 if (bgWorker.CancellationPending) {
-                    //キャンセルされたとき
                     e.Cancel = true;
                     return;
                 }
 
-                //var f = new FileInfo(n);
-                FileInfo f;
-                try {
-                    //ファイルを開く
-                    f = new FileInfo(n);
-                } catch (System.UnauthorizedAccessException) {
-                    bgWorker.ReportProgress(cnt, new object[] { names.Count, n + " : Access Error" });
-                    continue;
-                }
-
-
-                f.Refresh();
-                Debug.WriteLine(n + " : " + f.Length);
-                string o = @oDir + n.Substring(dDir.Length);
-                if (System.IO.File.Exists(o)) { // ファイル存在
-
-                } else {
-                    Debug.WriteLine(o + " : Not Exist");
-                    bgWorker.ReportProgress(names.Count, new object[] { names.Count, o + " : Not Exist" });
-                    diff++;
+                string relativePath = n.Substring(dDir.Length);
+                string originalPath = Path.Combine(oDir, relativePath);
+                
+                if (!File.Exists(originalPath)) {
+                    Interlocked.Increment(ref diff);
+                    string msg = originalPath + " : Not Exist";
+                    AppendText(msg);
                 }
             }
 
             e.Result = diff;
-
         }
 
         private void BackgroundWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e) {
-
             object[] o = (object[])e.UserState;
-            progressBar1.Value = e.ProgressPercentage;
-            progressBar1.Maximum = (int)o[0];
-            string str = (string)o[1];
-            if (str?.Length > 0) setText(str);
-            label1.Text = progressBar1.Value + "/" + progressBar1.Maximum;
-            label1.Update();
+            int current = e.ProgressPercentage;
+            int max = (int)o[0];
+
+            if (max > 0) {
+                progressBar1.Maximum = max;
+                // 値が最大値を超えないように保護
+                progressBar1.Value = Math.Min(current, max); 
+                label1.Text = current + "/" + max;
+            }
         }
 
         private void BackgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
             if (e.Error != null) {
-                //エラーが発生したとき
-                MessageBox.Show("エラー : " + e.Error.Message,
-                "エラー",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
+                MessageBox.Show("エラー : " + e.Error.Message, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             } else if (e.Cancelled) {
-                //キャンセルされたとき
-                MessageBox.Show("中断しました",
-                "中断",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning);
+                MessageBox.Show("中断しました", "中断", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             } else {
-                //正常に終了したとき
-                //結果を取得する
                 int result = (int)e.Result;
-                MessageBox.Show("完了しました[差分 : " + result + " ]",
-                "終了",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Asterisk);
+                MessageBox.Show("完了しました[差分 : " + result + " ]", "終了", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
             }
 
             button3.Text = "Start";
             doflag = false;
-
         }
 
         public static string ComputeFileHash(string filePath) {
-            var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            var bs = hashProvider.ComputeHash(fs);
-            return BitConverter.ToString(bs).ToLower().Replace("-", "");
+            // usingを使用することで、不要になった瞬間にインスタンスとファイルロックを確実に解放します
+            using (var hashProvider = new MD5CryptoServiceProvider())
+            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                var bs = hashProvider.ComputeHash(fs);
+                return BitConverter.ToString(bs).ToLower().Replace("-", "");
+            }
         }
 
-        public static List<String> GetAllFiles(String DirPath) {
-            List<String> lstStr = new List<String>();
-            String[] strBuff;
-
+        public static List<string> GetAllFiles(string dirPath) {
+            List<string> lstStr = new List<string>();
             try {
-                // ファイル取得
-                strBuff = Directory.GetFiles(DirPath);
-                foreach (String s in strBuff) {
-                    lstStr.Add(s);
-                }
+                // List.AddRange を使ってコードを短縮
+                lstStr.AddRange(Directory.GetFiles(dirPath));
 
-                // ディレクトリの取得
-                strBuff = Directory.GetDirectories(DirPath);
-                foreach (String s in strBuff) {
-                    List<String> lstBuff = GetAllFiles(s);
-                    lstBuff.ForEach(delegate (String str) {
-                        lstStr.Add(str);
-                    });
+                string[] directories = Directory.GetDirectories(dirPath);
+                foreach (string d in directories) {
+                    lstStr.AddRange(GetAllFiles(d));
                 }
-            } catch (System.UnauthorizedAccessException) {
-                // アクセスできなかったので無視
+            } catch (UnauthorizedAccessException) {
+                // アクセス権限がない場合は無視
             }
-
             return lstStr;
         }
-
     }
-
-
 }
