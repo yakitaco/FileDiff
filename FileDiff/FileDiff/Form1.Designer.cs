@@ -35,13 +35,16 @@
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.label1 = new System.Windows.Forms.Label();
             this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
+            this.button4 = new System.Windows.Forms.Button();
+            this.button5 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(13, 13);
+            this.button1.Location = new System.Drawing.Point(8, 9);
+            this.button1.Margin = new System.Windows.Forms.Padding(2);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(117, 35);
+            this.button1.Size = new System.Drawing.Size(70, 23);
             this.button1.TabIndex = 0;
             this.button1.Text = "Diff 1";
             this.button1.UseVisualStyleBackColor = true;
@@ -49,9 +52,10 @@
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(12, 54);
+            this.button2.Location = new System.Drawing.Point(7, 36);
+            this.button2.Margin = new System.Windows.Forms.Padding(2);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(117, 35);
+            this.button2.Size = new System.Drawing.Size(70, 23);
             this.button2.TabIndex = 1;
             this.button2.Text = "Diff 2";
             this.button2.UseVisualStyleBackColor = true;
@@ -62,9 +66,10 @@
             this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBox1.Font = new System.Drawing.Font("MS UI Gothic", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.textBox1.Location = new System.Drawing.Point(137, 13);
+            this.textBox1.Location = new System.Drawing.Point(82, 9);
+            this.textBox1.Margin = new System.Windows.Forms.Padding(2);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(413, 31);
+            this.textBox1.Size = new System.Drawing.Size(249, 23);
             this.textBox1.TabIndex = 2;
             // 
             // textBox2
@@ -72,18 +77,20 @@
             this.textBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.textBox2.Font = new System.Drawing.Font("MS UI Gothic", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.textBox2.Location = new System.Drawing.Point(137, 58);
+            this.textBox2.Location = new System.Drawing.Point(82, 39);
+            this.textBox2.Margin = new System.Windows.Forms.Padding(2);
             this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(413, 31);
+            this.textBox2.Size = new System.Drawing.Size(249, 23);
             this.textBox2.TabIndex = 3;
             // 
             // button3
             // 
             this.button3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.button3.Location = new System.Drawing.Point(13, 104);
+            this.button3.Location = new System.Drawing.Point(8, 69);
+            this.button3.Margin = new System.Windows.Forms.Padding(2);
             this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(704, 35);
+            this.button3.Size = new System.Drawing.Size(422, 23);
             this.button3.TabIndex = 4;
             this.button3.Text = "Start";
             this.button3.UseVisualStyleBackColor = true;
@@ -95,9 +102,10 @@
             this.checkBox1.AutoSize = true;
             this.checkBox1.Checked = true;
             this.checkBox1.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox1.Location = new System.Drawing.Point(591, 13);
+            this.checkBox1.Location = new System.Drawing.Point(345, 9);
+            this.checkBox1.Margin = new System.Windows.Forms.Padding(2);
             this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(128, 22);
+            this.checkBox1.Size = new System.Drawing.Size(87, 16);
             this.checkBox1.TabIndex = 5;
             this.checkBox1.Text = "ファイルサイズ";
             this.checkBox1.UseVisualStyleBackColor = true;
@@ -108,9 +116,10 @@
             this.checkBox2.AutoSize = true;
             this.checkBox2.Checked = true;
             this.checkBox2.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox2.Location = new System.Drawing.Point(591, 41);
+            this.checkBox2.Location = new System.Drawing.Point(345, 27);
+            this.checkBox2.Margin = new System.Windows.Forms.Padding(2);
             this.checkBox2.Name = "checkBox2";
-            this.checkBox2.Size = new System.Drawing.Size(127, 22);
+            this.checkBox2.Size = new System.Drawing.Size(86, 16);
             this.checkBox2.TabIndex = 6;
             this.checkBox2.Text = "タイムスタンプ";
             this.checkBox2.UseVisualStyleBackColor = true;
@@ -121,9 +130,10 @@
             this.checkBox3.AutoSize = true;
             this.checkBox3.Checked = true;
             this.checkBox3.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox3.Location = new System.Drawing.Point(591, 69);
+            this.checkBox3.Location = new System.Drawing.Point(345, 46);
+            this.checkBox3.Margin = new System.Windows.Forms.Padding(2);
             this.checkBox3.Name = "checkBox3";
-            this.checkBox3.Size = new System.Drawing.Size(120, 22);
+            this.checkBox3.Size = new System.Drawing.Size(82, 16);
             this.checkBox3.TabIndex = 7;
             this.checkBox3.Text = "MD5ハッシュ";
             this.checkBox3.UseVisualStyleBackColor = true;
@@ -133,11 +143,12 @@
             this.textBox3.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox3.Location = new System.Drawing.Point(13, 145);
+            this.textBox3.Location = new System.Drawing.Point(8, 123);
+            this.textBox3.Margin = new System.Windows.Forms.Padding(2);
             this.textBox3.Multiline = true;
             this.textBox3.Name = "textBox3";
             this.textBox3.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBox3.Size = new System.Drawing.Size(705, 300);
+            this.textBox3.Size = new System.Drawing.Size(425, 182);
             this.textBox3.TabIndex = 8;
             this.textBox3.WordWrap = false;
             // 
@@ -145,18 +156,20 @@
             // 
             this.progressBar1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.progressBar1.Location = new System.Drawing.Point(12, 451);
+            this.progressBar1.Location = new System.Drawing.Point(7, 308);
+            this.progressBar1.Margin = new System.Windows.Forms.Padding(2);
             this.progressBar1.Name = "progressBar1";
-            this.progressBar1.Size = new System.Drawing.Size(564, 28);
+            this.progressBar1.Size = new System.Drawing.Size(338, 19);
             this.progressBar1.TabIndex = 9;
             // 
             // label1
             // 
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(593, 461);
+            this.label1.Location = new System.Drawing.Point(356, 314);
+            this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(35, 18);
+            this.label1.Size = new System.Drawing.Size(23, 12);
             this.label1.TabIndex = 10;
             this.label1.Text = "-/-";
             // 
@@ -166,11 +179,39 @@
             this.backgroundWorker1.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.BackgroundWorker1_ProgressChanged);
             this.backgroundWorker1.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.BackgroundWorker1_RunWorkerCompleted);
             // 
+            // button4
+            // 
+            this.button4.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.button4.Location = new System.Drawing.Point(5, 96);
+            this.button4.Margin = new System.Windows.Forms.Padding(2);
+            this.button4.Name = "button4";
+            this.button4.Size = new System.Drawing.Size(200, 23);
+            this.button4.TabIndex = 11;
+            this.button4.Text = "Create Hash List";
+            this.button4.UseVisualStyleBackColor = true;
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            // 
+            // button5
+            // 
+            this.button5.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.button5.Location = new System.Drawing.Point(209, 96);
+            this.button5.Margin = new System.Windows.Forms.Padding(2);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(221, 23);
+            this.button5.TabIndex = 11;
+            this.button5.Text = "Compare Hash List";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 18F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(743, 489);
+            this.ClientSize = new System.Drawing.Size(446, 333);
+            this.Controls.Add(this.button5);
+            this.Controls.Add(this.button4);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.textBox3);
@@ -182,7 +223,8 @@
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.button1);
-            this.MinimumSize = new System.Drawing.Size(500, 500);
+            this.Margin = new System.Windows.Forms.Padding(2);
+            this.MinimumSize = new System.Drawing.Size(306, 346);
             this.Name = "Form1";
             this.Text = "File Diff";
             this.ResumeLayout(false);
@@ -204,6 +246,8 @@
         private System.Windows.Forms.ProgressBar progressBar1;
         private System.Windows.Forms.Label label1;
         private System.ComponentModel.BackgroundWorker backgroundWorker1;
+        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.Button button5;
     }
 }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,6 +14,8 @@ namespace FileDiff
         public bool CheckSize { get; set; }
         public bool CheckTimestamp { get; set; }
         public bool CheckHash { get; set; }
+
+        public string HashAlgorithmName { get; set; } = "MD5";
 
         public int Compare(string sourceDir, string targetDir,
                            Action<int, int> progressCallback,
@@ -133,5 +136,79 @@ namespace FileDiff
             } catch (UnauthorizedAccessException) { }
             return list;
         }
+
+        // --- 1. ハッシュリストの作成 ---
+        public void CreateHashList(string targetDir, string savePath, Action<int, int> progressCallback, CancellationToken ct)
+        {
+            var files = GetAllFiles(targetDir);
+            int total = files.Count;
+            int processed = 0;
+
+            if (!targetDir.EndsWith(Path.DirectorySeparatorChar.ToString())) targetDir += Path.DirectorySeparatorChar;
+
+            using (var sw = new StreamWriter(savePath, false, Encoding.UTF8))
+            {
+                // ヘッダー: 相対パス, ハッシュ, アルゴリズム
+                sw.WriteLine("RelativePath,Hash,Algorithm");
+
+                foreach (var file in files)
+                {
+                    ct.ThrowIfCancellationRequested();
+
+                    string relativePath = file.Substring(targetDir.Length);
+                    string hash = ComputeHash(file);
+                    sw.WriteLine($"{EscapeCsv(relativePath)},{hash},{HashAlgorithmName}");
+
+                    processed++;
+                    progressCallback?.Invoke(processed, total);
+                }
+            }
+        }
+
+        // --- 2. ハッシュリストとの照合 ---
+        public int CompareWithHashList(string targetDir, string listPath, Action<int, int> progressCallback, Action<string> logCallback, CancellationToken ct)
+        {
+            int diffCount = 0;
+            var lines = File.ReadAllLines(listPath, Encoding.UTF8);
+            int total = lines.Length - 1; // ヘッダー除く
+            int processed = 0;
+
+            if (!targetDir.EndsWith(Path.DirectorySeparatorChar.ToString())) targetDir += Path.DirectorySeparatorChar;
+
+            for (int i = 1; i < lines.Length; i++)
+            { // 1行目はヘッダー
+                ct.ThrowIfCancellationRequested();
+                var parts = ParseCsv(lines[i]);
+                if (parts.Length < 3) continue;
+
+                string relativePath = parts[0];
+                string expectedHash = parts[1];
+                string algo = parts[2]; // 将来的にここでアルゴリズムを切り替える
+
+                string fullPath = Path.Combine(targetDir, relativePath);
+
+                if (!File.Exists(fullPath))
+                {
+                    diffCount++;
+                    logCallback?.Invoke($"{relativePath} : ファイルが存在しません");
+                } else
+                {
+                    string actualHash = ComputeHash(fullPath);
+                    if (actualHash != expectedHash)
+                    {
+                        diffCount++;
+                        logCallback?.Invoke($"{relativePath} : ハッシュ不一致");
+                    }
+                }
+
+                processed++;
+                progressCallback?.Invoke(processed, total);
+            }
+            return diffCount;
+        }
+
+        private string EscapeCsv(string s) => s.Contains(",") ? $"\"{s}\"" : s;
+        private string[] ParseCsv(string line) => line.Split(','); // 簡易的な分割
+
     }
 }

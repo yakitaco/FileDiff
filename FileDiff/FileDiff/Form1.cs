@@ -7,6 +7,10 @@ namespace FileDiff
 {
     public partial class Form1 : Form
     {
+        // 動作モードの定義
+        enum WorkMode { CompareFolders, CreateList, VerifyList }
+        WorkMode currentMode;
+
         bool isRunning = false;
 
         // キャンセル信号を発行するためのオブジェクト
@@ -92,6 +96,71 @@ namespace FileDiff
             }
         }
 
+        // リスト作成ボタン
+        private void button4_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(textBox1.Text))
+            {
+                MessageBox.Show("対象フォルダを選択してください。");
+                return;
+            }
+
+            using (SaveFileDialog sfd = new SaveFileDialog())
+            {
+                sfd.Filter = "CSVファイル(*.csv)|*.csv|テキストファイル(*.txt)|*.txt";
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    StartWork(WorkMode.CreateList, sfd.FileName);
+                }
+            }
+
+            backgroundWorker1.WorkerReportsProgress = true;
+            backgroundWorker1.WorkerSupportsCancellation = true;
+
+        }
+
+        // リスト照合ボタン
+        private void button5_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(textBox1.Text))
+            {
+                MessageBox.Show("対象フォルダを選択してください。");
+                return;
+            }
+
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "CSVファイル(*.csv)|*.csv|テキストファイル(*.txt)|*.txt";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    StartWork(WorkMode.VerifyList, ofd.FileName);
+                }
+            }
+
+            backgroundWorker1.WorkerReportsProgress = true;
+            backgroundWorker1.WorkerSupportsCancellation = true;
+
+        }
+
+        private void StartWork(WorkMode mode, string extraPath = "")
+        {
+            currentMode = mode;
+            textBox3.Clear();
+            button3.Text = "Stop";
+            isRunning = true;
+            cts = new CancellationTokenSource();
+
+            var options = new ComparisonOptions
+            {
+                SourceDir = textBox1.Text,
+                TargetDir = textBox2.Text,
+                ListPath = extraPath, // 新設プロパティ
+                CheckHash = true // リスト系はハッシュ必須
+            };
+
+            backgroundWorker1.RunWorkerAsync(options);
+        }
+
         private void BackgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
         {
             var bg = (BackgroundWorker)sender;
@@ -100,31 +169,39 @@ namespace FileDiff
             var options = (ComparisonOptions)e.Argument;
 
             // ロジッククラスに設定を反映
-            var comparer = new FileComparer
-            {
-                CheckSize = options.CheckSize,
-                CheckTimestamp = options.CheckTimestamp,
-                CheckHash = options.CheckHash
-            };
+            var comparer = new FileComparer();
 
             try
             {
-                int diffs = comparer.Compare(
-                    options.SourceDir,
-                    options.TargetDir,
-                    (curr, total) => bg.ReportProgress(0, new int[] { curr, total }), // 進捗通知
-                    msg => this.Invoke(new Action(() => textBox3.AppendText(msg + Environment.NewLine))), // ログ出力
-                    cts.Token
-                );
-
-                // キャンセル判定
-                if (bg.CancellationPending)
+                if (currentMode == WorkMode.CreateList)
                 {
-                    e.Cancel = true;
-                    return;
-                }
+                    comparer.CreateHashList(options.SourceDir, options.ListPath,
+                        (c, t) => bg.ReportProgress(0, new int[] { c, t }), cts.Token);
+                    e.Result = 0;
+                } else if (currentMode == WorkMode.VerifyList)
+                {
+                    e.Result = comparer.CompareWithHashList(options.SourceDir, options.ListPath,
+                        (c, t) => bg.ReportProgress(0, new int[] { c, t }),
+                        msg => this.Invoke(new Action(() => textBox3.AppendText(msg + Environment.NewLine))), cts.Token);
+                } else
+                {
+                    int diffs = comparer.Compare(
+                        options.SourceDir,
+                        options.TargetDir,
+                        (curr, total) => bg.ReportProgress(0, new int[] { curr, total }), // 進捗通知
+                        msg => this.Invoke(new Action(() => textBox3.AppendText(msg + Environment.NewLine))), // ログ出力
+                        cts.Token
+                    );
 
-                e.Result = diffs;
+                    // キャンセル判定
+                    if (bg.CancellationPending)
+                    {
+                        e.Cancel = true;
+                        return;
+                    }
+
+                    e.Result = diffs;
+                }
             } catch (Exception ex)
             {
                 e.Cancel = true;
@@ -176,9 +253,11 @@ namespace FileDiff
         {
             public string SourceDir { get; set; }
             public string TargetDir { get; set; }
+            public string ListPath { get; set; }
             public bool CheckSize { get; set; }
             public bool CheckTimestamp { get; set; }
             public bool CheckHash { get; set; }
         }
+
     }
 }
