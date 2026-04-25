@@ -19,6 +19,7 @@ namespace FileDiff
         public Form1()
         {
             InitializeComponent();
+            comboBox1.SelectedIndex = 0;
         }
 
         // フォルダ選択処理
@@ -76,7 +77,8 @@ namespace FileDiff
                     TargetDir = textBox2.Text,
                     CheckSize = checkBox1.Checked,
                     CheckTimestamp = checkBox2.Checked,
-                    CheckHash = checkBox3.Checked
+                    CheckHash = checkBox3.Checked,
+                    HashAlgorithm = comboBox1.SelectedItem?.ToString() ?? "MD5"
                 };
 
                 backgroundWorker1.WorkerReportsProgress = true;
@@ -155,7 +157,8 @@ namespace FileDiff
                 SourceDir = textBox1.Text,
                 TargetDir = textBox2.Text,
                 ListPath = extraPath, // 新設プロパティ
-                CheckHash = true // リスト系はハッシュ必須
+                CheckHash = true, // リスト系はハッシュ必須
+                HashAlgorithm = comboBox1.SelectedItem?.ToString() ?? "MD5"
             };
 
             backgroundWorker1.RunWorkerAsync(options);
@@ -170,6 +173,7 @@ namespace FileDiff
 
             // ロジッククラスに設定を反映
             var comparer = new FileComparer();
+            comparer.HashAlgorithmName = options.HashAlgorithm;
 
             try
             {
@@ -257,6 +261,7 @@ namespace FileDiff
             public bool CheckSize { get; set; }
             public bool CheckTimestamp { get; set; }
             public bool CheckHash { get; set; }
+            public string HashAlgorithm { get; set; }
         }
 
     }

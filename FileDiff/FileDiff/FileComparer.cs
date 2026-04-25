@@ -33,7 +33,8 @@ namespace FileDiff
             if (!targetDir.EndsWith(Path.DirectorySeparatorChar.ToString())) targetDir += Path.DirectorySeparatorChar;
 
             // 1. ソース(Dir1)を基準に比較
-            Parallel.ForEach(sourceFiles, new ParallelOptions { CancellationToken = ct }, (file, state) => {
+            Parallel.ForEach(sourceFiles, new ParallelOptions { CancellationToken = ct }, (file, state) =>
+            {
                 if (ct.IsCancellationRequested) state.Stop();
 
                 // キャンセル信号を受け取った場合はループを抜ける
@@ -85,7 +86,8 @@ namespace FileDiff
                             Interlocked.Increment(ref diffCount);
                             logCallback?.Invoke($"{targetPath} : Hash Diff");
                         }
-                    } catch(OperationCanceledException) {
+                    } catch (OperationCanceledException)
+                    {
                         // キャンセルされた場合そのまま上に投げる
                         throw;
                     } catch (Exception ex)
@@ -114,12 +116,31 @@ namespace FileDiff
             return diffCount;
         }
 
+        // --- ハッシュ計算エンジン ---
         private string ComputeHash(string path)
         {
-            using (var md5 = new MD5CryptoServiceProvider())
+            // アルゴリズム名に基づいてプロバイダーを生成
+            using (HashAlgorithm algorithm = CreateHashAlgorithm(HashAlgorithmName))
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                return BitConverter.ToString(md5.ComputeHash(stream)).ToLower().Replace("-", "");
+                byte[] hashBytes = algorithm.ComputeHash(stream);
+                return BitConverter.ToString(hashBytes).ToLower().Replace("-", "");
+            }
+        }
+
+        private HashAlgorithm CreateHashAlgorithm(string name)
+        {
+            switch (name.ToUpper())
+            {
+                case "SHA-1":
+                case "SHA1":
+                    return SHA1.Create();
+                case "SHA-256":
+                case "SHA256":
+                    return SHA256.Create();
+                case "MD5":
+                default:
+                    return MD5.Create();
             }
         }
 
